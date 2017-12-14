@@ -10,8 +10,9 @@ SDK_REPO_BASE ?= multiarch/alpine
 # Base OS details XXX: Make distro agnostic
 ALPINE_VER ?= v3.7
 ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
-ALPINE_SHELL ?= /bin/sh
-ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker
+ALPINE_SDK_SHELL ?= /bin/sh
+ALPINE_SDK_USER ?= ${USER}
+ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow
 ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 			      apk add ${ALPINE_SDK_BASE_PKGS}"
 
@@ -19,7 +20,7 @@ ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
-DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/
+DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
 
 # Target practice!
 help:
@@ -34,8 +35,8 @@ help:
 	@echo "build-sdk: Download docker base image and install basic sdk" 
 	@echo "		 set ALPINE_SDK_BASE_PKGS to the list of Alpine Linux packages you would like pre-installed."
 	@echo
-	@echo "run-sdk-shell: run your favourite $ALPINE_SHELL inside the newly built sdk environment"
-	@echo "		 set ALPINE_SHELL to the path of your favourite shell." 
+	@echo "run-sdk-shell: run your favourite $ALPINE_SDK_SHELL inside the newly built sdk environment"
+	@echo "		 set ALPINE_SDK_SHELL to the path of your favourite shell." 
 	@exit
 
 
@@ -64,17 +65,20 @@ clean-sdk: # Silly attempt to babysit
 #.PHONY: Dockerfile
 
 # XXX: This whole thing below needs to go into a parser that groks Dockerfile BNF
+# POSIX fascism - not using 'sed -i'
 Dockerfile: Dockerfile.in
 	set -e ;\
 	_ZDK_TMPFILE=$$(mktemp) ;\
 	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/ $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
 
 
 build-sdk: Dockerfile
-	docker build --build-arg SDK_REPO_BASE=${SDK_REPO_BASE} --build-arg ALPINE_MULTIARCH_VER=${ALPINE_MULTIARCH_VER} -t ${DOCKER_VOLUME_ROOT_CACHE} .
+	docker build -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell:
-	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SHELL}
+	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - root
