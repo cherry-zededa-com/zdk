@@ -1,0 +1,10 @@
+# Copyright 2017, Zededa Inc.
+# Written by Cherry G. Mathew <cherry@zededa.com>
+
+FROM ${SDK_REPO_BASE}:${ALPINE_MULTIARCH_VER} AS sdk-base
+
+RUN apk update
+
+RUN apk add ${ALPINE_SDK_BASE_PKGS}
+
+
