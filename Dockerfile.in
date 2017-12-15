@@ -7,9 +7,9 @@ RUN apk update
 
 RUN apk add ${ALPINE_SDK_BASE_PKGS}
 
-RUN useradd -m ${ALPINE_SDK_USER}
+RUN adduser -D ${ALPINE_SDK_USER}
 
-RUN su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER} -c "pwd; echo $USER"
+RUN su -s ${ALPINE_SDK_SHELL} -m ${ALPINE_SDK_USER} -c "pwd; echo $USER"
 
 FROM scratch
 
