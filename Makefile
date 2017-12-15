@@ -12,7 +12,9 @@ ALPINE_VER ?= v3.7
 ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
 ALPINE_SDK_SHELL ?= /bin/sh
 ALPINE_SDK_USER ?= ${USER}
-ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow
+ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client openssh-doc
+# Ideally, we want to setup packages via composition to correctly make use of the 
+# docker cache.
 ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 			      apk add ${ALPINE_SDK_BASE_PKGS}"
 
@@ -20,7 +22,7 @@ ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
-DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
+DOCKER_RUN_PREFIX := --no-cache=true --name ${DOCKER_CONTAINER} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
 
 # Target practice!
 help:
@@ -62,11 +64,11 @@ clean-sdk: # Silly attempt to babysit
 	${MAKE} -k clean-container clean-volume-root-cache
 
 # Let's import some variables from the environment!
-#.PHONY: Dockerfile
+.PHONY: Dockerfile
 
 # XXX: This whole thing below needs to go into a parser that groks Dockerfile BNF
 # POSIX fascism - not using 'sed -i'
-Dockerfile: Dockerfile.in
+Dockerfile: Dockerfile.in 
 	set -e ;\
 	_ZDK_TMPFILE=$$(mktemp) ;\
 	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/ $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\
@@ -75,10 +77,8 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
-
-
 build-sdk: Dockerfile
 	docker build -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
-run-sdk-shell:
+run-sdk-shell: 
 	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - root
