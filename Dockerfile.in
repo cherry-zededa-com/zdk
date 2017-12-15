@@ -3,21 +3,16 @@
 
 FROM ${SDK_REPO_BASE}:${ALPINE_MULTIARCH_VER} AS sdk-base
 
+# Prep software
 RUN apk update
-
 RUN apk add ${ALPINE_SDK_BASE_PKGS}
-
-RUN adduser -D ${ALPINE_SDK_USER}
-
-RUN su -s ${ALPINE_SDK_SHELL} -m ${ALPINE_SDK_USER} -c "pwd; echo $USER"
-
 FROM scratch
-
 ENTRYPOINT []
-
 CMD []
-
 WORKDIR /
 
 COPY --from=sdk-base / /
+
+# Prep user
+RUN adduser -D ${ALPINE_SDK_USER}
 

@@ -12,7 +12,7 @@ ALPINE_VER ?= v3.7
 ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
 ALPINE_SDK_SHELL ?= /bin/sh
 ALPINE_SDK_USER ?= ${USER}
-ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client openssh-doc
+ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client 
 # Ideally, we want to setup packages via composition to correctly make use of the 
 # docker cache.
 ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
@@ -20,10 +20,13 @@ ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 
 # Docker details
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
+DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
-DOCKER_RUN_PREFIX := --no-cache=true --name ${DOCKER_CONTAINER} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
-
+DOCKER_COMMON_PREFIX := # 
+DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
+DOCKER_BUILD_PREFIX := 
+#--no-cache=true
 # Target practice!
 help:
 	@clear
@@ -71,14 +74,14 @@ clean-sdk: # Silly attempt to babysit
 Dockerfile: Dockerfile.in 
 	set -e ;\
 	_ZDK_TMPFILE=$$(mktemp) ;\
-	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/ $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/ $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/g $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
 build-sdk: Dockerfile
-	docker build -t ${DOCKER_VOLUME_ROOT_CACHE} .
+	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - root
+	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER}
