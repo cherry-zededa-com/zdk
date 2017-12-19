@@ -19,12 +19,13 @@ ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
 			      apk add ${ALPINE_SDK_BASE_PKGS}"
 
 # Docker details
+DOCKER_GID ?= $(shell grep docker /etc/group|cut -d ':' -f 3)
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
 DOCKER_COMMON_PREFIX := # 
-DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER}
+DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER} -v /var/run/docker.sock:/var/run/docker.sock --rm
 DOCKER_BUILD_PREFIX := 
 #--no-cache=true
 # Target practice!
@@ -78,10 +79,11 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{DOCKER_GID\}/$(subst /,\\/,${DOCKER_GID})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
 build-sdk: Dockerfile
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run --rm ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER}
+	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER}

@@ -6,13 +6,21 @@ FROM ${SDK_REPO_BASE}:${ALPINE_MULTIARCH_VER} AS sdk-base
 # Prep software
 RUN apk update
 RUN apk add ${ALPINE_SDK_BASE_PKGS}
+
+FROM sdk-base AS go-base
+RUN  go get -v -u github.com/linuxkit/linuxkit/src/cmd/linuxkit
+
 FROM scratch
 ENTRYPOINT []
 CMD []
 WORKDIR /
 
 COPY --from=sdk-base / /
+COPY --from=go-base /root/go/pkg /usr/lib/go/
+COPY --from=go-base /root/go/src /usr/lib/go/
+COPY --from=go-base /root/go/bin/ /usr/local/bin/
 
 # Prep user
 RUN adduser -D ${ALPINE_SDK_USER}
-
+RUN groupmod -g ${DOCKER_GID} docker
+RUN adduser ${ALPINE_SDK_USER} docker
