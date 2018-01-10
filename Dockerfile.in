@@ -21,6 +21,6 @@ COPY --from=go-base /root/go/src /usr/lib/go/
 COPY --from=go-base /root/go/bin/ /usr/local/bin/
 
 # Prep user
-RUN adduser -D ${ALPINE_SDK_USER}
+RUN adduser -D ${ALPINE_SDK_USER} -u ${ALPINE_SDK_USERID}
 RUN groupmod -g ${DOCKER_GID} docker
 RUN adduser ${ALPINE_SDK_USER} docker

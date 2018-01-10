@@ -12,6 +12,7 @@ ALPINE_VER ?= v3.7
 ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
 ALPINE_SDK_SHELL ?= /bin/sh
 ALPINE_SDK_USER ?= ${USER}
+ALPINE_SDK_USERID ?= $(shell id -u ${ALPINE_SDK_USER})
 ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client 
 # Ideally, we want to setup packages via composition to correctly make use of the 
 # docker cache.
@@ -78,6 +79,7 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/g $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_USERID\}/${ALPINE_SDK_USERID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{DOCKER_GID\}/$(subst /,\\/,${DOCKER_GID})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
