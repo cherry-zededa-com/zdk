@@ -1,6 +1,10 @@
 # Copyright 2017, Zededa Inc.
 # Written by Cherry G. Mathew <cherry@zededa.com> 
 
+# Defaults for all tweakables go below
+# XXX: Only a subset of these are substituted in the Dockerfile template
+#      See the Dockerfile BNF below
+
 # CPU ARCH
 BUILDARCH ?= $(shell uname -m) # The target CPU architecture == host arch if unspecified.
 
@@ -11,6 +15,8 @@ SDK_REPO_BASE ?= multiarch/alpine
 ALPINE_VER ?= v3.7
 ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
 ALPINE_SDK_SHELL ?= /bin/sh
+ALPINE_SDK_SHELL_ARGS ?= # arguments
+ALPINE_SDK_WORKDIR ?= $(shell pwd) # Default will just end up where zmake is
 ALPINE_SDK_USER ?= ${USER}
 ALPINE_SDK_USERID ?= $(shell id -u ${ALPINE_SDK_USER})
 ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client 
@@ -25,8 +31,22 @@ DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
+DOCKER_VOLUME_MOUNT_TYPE ?= volume
 DOCKER_COMMON_PREFIX := # 
-DOCKER_RUN_PREFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} --mount source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER} -v /var/run/docker.sock:/var/run/docker.sock --rm
+
+# No more tweakable defaults after this line
+
+# Name things
+DOCKER_RUN_PRIFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} 
+# host docker socket sharing
+DOCKER_RUN_PREFIX += -v /var/run/docker.sock:/var/run/docker.sock
+# Destroy build container after use. 
+DOCKER_RUN_PREFIX += --rm
+# containerise home directory - use a private volume
+DOCKER_RUN_PREFIX += --mount type=$(strip ${DOCKER_VOLUME_MOUNT_TYPE}),source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER} 
+# Bring in the directory on the host where the source is
+DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} -w ${ALPINE_SDK_WORKDIR} 
+
 DOCKER_BUILD_PREFIX := 
 #--no-cache=true
 # Target practice!
@@ -88,4 +108,4 @@ build-sdk: Dockerfile
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER}
+	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER} ${ALPINE_SDK_SHELL_ARGS}
