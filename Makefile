@@ -19,11 +19,7 @@ ALPINE_SDK_SHELL_ARGS ?= # arguments
 ALPINE_SDK_WORKDIR ?= $(shell pwd) # Default will just end up where zmake is
 ALPINE_SDK_USER ?= ${USER}
 ALPINE_SDK_USERID ?= $(shell id -u ${ALPINE_SDK_USER})
-ALPINE_SDK_BASE_PKGS ?= go git libc-dev make docker shadow openssh-client 
-# Ideally, we want to setup packages via composition to correctly make use of the 
-# docker cache.
-ALPINE_SDK_SETUP_COMMANDS ?= "apk update && \
-			      apk add ${ALPINE_SDK_BASE_PKGS}"
+ALPINE_SDK_USER_PKGS ?= # Set this in the environment ?
 
 # Docker details
 DOCKER_GID ?= $(shell grep docker /etc/group|cut -d ':' -f 3)
@@ -35,6 +31,8 @@ DOCKER_VOLUME_MOUNT_TYPE ?= volume
 DOCKER_COMMON_PREFIX := # 
 
 # No more tweakable defaults after this line
+ALPINE_SDK_BASE_PKGS := go git libc-dev make docker shadow openssh-client 
+ALPINE_SDK_PKGS := ${ALPINE_SDK_BASE_PKGS} ${ALPINE_SDK_USER_PKGS}
 
 # Name things
 DOCKER_RUN_PRIFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HOSTNAME} 
@@ -60,7 +58,7 @@ help:
 	@echo "		 build-sdk, run-sdk-shell, clean-sdk"
 	@echo
 	@echo "build-sdk: Download docker base image and install basic sdk" 
-	@echo "		 set ALPINE_SDK_BASE_PKGS to the list of Alpine Linux packages you would like pre-installed."
+	@echo "		 set ALPINE_SDK_USER_PKGS to the list of additional Alpine Linux packages you need pre-installed."
 	@echo
 	@echo "run-sdk-shell: run your favourite $ALPINE_SDK_SHELL inside the newly built sdk environment"
 	@echo "		 set ALPINE_SDK_SHELL to the path of your favourite shell." 
@@ -100,7 +98,7 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USERID\}/${ALPINE_SDK_USERID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{ALPINE_SDK_BASE_PKGS\}/'${ALPINE_SDK_BASE_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_PKGS\}/'${ALPINE_SDK_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{DOCKER_GID\}/$(subst /,\\/,${DOCKER_GID})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
