@@ -12,7 +12,7 @@
 #export DOCKER_VOLUME_MOUNT_TYPE=bind
 
 export ALPINE_SDK_SHELL=/bin/sh
-export ALPINE_SDK_SHELL_ARGS="-c \"cd $PWD; make $@\""
-export ALPINE_SDK_WORKDIR=$PWD
+export ALPINE_SDK_WORKDIR=$PWD # We mount the CWD in the container.
+export ALPINE_SDK_SHELL_ARGS="-c \"cd $ALPINE_SDK_WORKDIR; make $@\""
 
 (cd $ALPINE_SDK_DIR; make build-sdk run-sdk-shell)
