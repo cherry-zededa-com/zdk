@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Wrapper script to re-use our SDK environment with a
+# given docker image mounted within it
+
+# This script assumes that:
+#	- We run it as the userid which is meant to build the source
+
+export DOCKER_VOLUME_DEBUG_IMAGE=$1
+
+export ALPINE_SDK_SHELL=/bin/sh
+export ALPINE_SDK_WORKDIR=$PWD # We mount the CWD in the container.
+export ALPINE_SDK_SHELL_ARGS="-c \"cd /$DOCKER_VOLUME_DEBUG_IMAGE/; ls -l; /bin/sh\""
+
+(cd $ALPINE_SDK_DIR; make run-debug-shell)

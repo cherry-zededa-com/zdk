@@ -29,10 +29,11 @@ DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER}
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
 DOCKER_VOLUME_MOUNT_TYPE ?= volume
 DOCKER_VOLUME_HOME_MOUNTDIR ?= /home/${ALPINE_SDK_USER}
+DOCKER_VOLUME_DEBUG_IMAGE ?= sdk-debug-image
 DOCKER_COMMON_PREFIX := # 
 
 # No more tweakable defaults after this line
-ALPINE_SDK_BASE_PKGS := go git libc-dev make docker shadow openssh-client 
+ALPINE_SDK_BASE_PKGS := busybox go git libc-dev make docker shadow openssh-client 
 ALPINE_SDK_PKGS := ${ALPINE_SDK_BASE_PKGS} ${ALPINE_SDK_USER_PKGS}
 
 # Name things
@@ -108,3 +109,35 @@ build-sdk: Dockerfile
 
 run-sdk-shell: 
 	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER} ${ALPINE_SDK_SHELL_ARGS}
+
+# Used for image inspection. We merge the contents of
+# DOCKER_VOLUME_ROOT_CACHE and the
+# requested container into a new container and start a shell in this
+# new container.
+# We use a hack by just re-using the Dockerfile template by sticking
+# what we need at the bottom of the Auto-gen-ed Dockerfile
+
+run-debug-shell: build-sdk
+	# Dockerfile is now autogen-ed. We just tack our stuff into it.
+	# XXX: Figure out multiline string echo.
+	# XXX: First
+	set -e ;\
+	_ZDK_TMPFILE=$$(mktemp) ;\
+	echo "#" > $$_ZDK_TMPFILE ;\
+	echo "# Copy the image we're interested in inspecting." >> $$_ZDK_TMPFILE  ;\
+	echo "FROM ${DOCKER_VOLUME_DEBUG_IMAGE} AS image-inspected" >> $$_ZDK_TMPFILE ;\
+	echo "#" >> $$_ZDK_TMPFILE ;\
+	_DOCKERSTRING=$$(cat $$_ZDK_TMPFILE Dockerfile) ;\
+	echo "$$_DOCKERSTRING" > Dockerfile ;\
+	rm -f $$_ZDK_TMPFILE
+	@echo >> Dockerfile
+	@echo "#" >> Dockerfile 
+	@echo "# Bring in contents of image being inspected." >> Dockerfile
+	@echo "COPY --from=image-inspected / /${DOCKER_VOLUME_DEBUG_IMAGE}/" >> Dockerfile
+	# Cleanup old volume
+	#docker image rm -f ${DOCKER_VOLUME_ROOT_CACHE} # Clean the slate.
+	# Run build with new Dockerfile in place.
+	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
+	# Run a sub make with run-sdk-shell
+	${MAKE} MAKEFLAGS= run-sdk-shell
+
