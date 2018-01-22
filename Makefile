@@ -28,6 +28,7 @@ DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
 DOCKER_VOLUME_MOUNT_TYPE ?= volume
+DOCKER_VOLUME_HOME_MOUNTDIR ?= /home/${ALPINE_SDK_USER}
 DOCKER_COMMON_PREFIX := # 
 
 # No more tweakable defaults after this line
@@ -41,7 +42,7 @@ DOCKER_RUN_PREFIX += -v /var/run/docker.sock:/var/run/docker.sock
 # Destroy build container after use. 
 DOCKER_RUN_PREFIX += --rm
 # containerise home directory - use a private volume
-DOCKER_RUN_PREFIX += --mount type=$(strip ${DOCKER_VOLUME_MOUNT_TYPE}),source=$(strip ${DOCKER_VOLUME_HOME}),target=/home/${ALPINE_SDK_USER} 
+DOCKER_RUN_PREFIX += --mount type=$(strip ${DOCKER_VOLUME_MOUNT_TYPE}),source=$(strip ${DOCKER_VOLUME_HOME}),target=$(strip ${DOCKER_VOLUME_HOME_MOUNTDIR})
 # Bring in the directory on the host where the source is
 DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} -w ${ALPINE_SDK_WORKDIR} 
 
