@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Wrapper script to wrap a docker based toolchain around the build. 
+
+# This script assumes that:
+#	- We run it as the userid which is meant to build the source
+#	- We run it from the zenbuild source directory
+
+# Set these below if you want to export the entire host home directory
+# into the container tools environment.
+#export DOCKER_VOLUME_HOME=$HOME
+#export DOCKER_VOLUME_MOUNT_TYPE=bind
+
+export ALPINE_SDK_SHELL=/bin/sh
+export ALPINE_SDK_WORKDIR=$PWD # We mount the CWD in the container.
+export ALPINE_SDK_SHELL_ARGS="-c \"cd $ALPINE_SDK_WORKDIR; /bin/sh $@\""
+
+(cd $ALPINE_SDK_DIR; make build-sdk run-sdk-shell)
