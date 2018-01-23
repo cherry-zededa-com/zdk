@@ -1,7 +1,11 @@
 # Copyright 2017, Zededa Inc.
 # Written by Cherry G. Mathew <cherry@zededa.com>
 
+# XXX: TODO: For cross ARCH build - install the static binary, if needed
+# FROM multiarch/qemu-user-static:register AS qemu-static
+
 FROM ${SDK_REPO_BASE}:${ALPINE_MULTIARCH_VER} AS sdk-base
+
 
 # Prep software
 RUN apk update
