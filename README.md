@@ -1,6 +1,19 @@
 This is a quick and dirty working environment to get
 zenbuild going on Softiron.
 
-TODO: Document base packages required on "host" os to get this up and running
+Prerequisites:
+Requires at least docker, git and gnu make to be installed on the host
+machine.
 
-eg: docker, go, ...
+Put the following in your .profile or equivalent:
+
+export ALPINE_SDK_DIR=$HOME/..../zdk #Path where you're reading this file.
+export PATH=$PATH:$ALPINE_SDK_DIR
+
+
+
+Now you can invoke the 'zmake' script from the zenbuild directory:
+
+host:~/.../zenbuild$ 'zmake pkgs'
+
+... and off you go!
