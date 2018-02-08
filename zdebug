@@ -5,6 +5,7 @@
 
 # This script assumes that:
 #	- We run it as the userid which is meant to build the source
+. "zdocker.sh"
 
 export DOCKER_VOLUME_DEBUG_IMAGE=$1
 

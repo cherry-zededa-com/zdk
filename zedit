@@ -10,6 +10,7 @@
 # into the container tools environment.
 #export DOCKER_VOLUME_HOME=$HOME
 #export DOCKER_VOLUME_MOUNT_TYPE=bind
+. "zdocker.sh"
 
 export ALPINE_SDK_SHELL=/bin/sh
 # Honour the EDITOR env variable, if not default to emacs :-)
