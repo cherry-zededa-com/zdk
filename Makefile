@@ -24,8 +24,9 @@ ALPINE_SDK_GID ?= $(shell id -g)
 ALPINE_SDK_USER_PKGS ?= # Set this in the environment ?
 
 # Docker details
-DOCKER_GROUP ?= $(shell ls -ld  /var/run/docker.sock|tr -s ' '|cut -d ' ' -f 4)
-DOCKER_GID ?= $(shell grep ${DOCKER_GROUP} /etc/group|cut -d ':' -f 3)
+DOCKER_BIN ?= /var/run/docker.sock
+DOCKER_GROUP ?= $(shell ls -ld ${DOCKER_BIN}|tr -s ' '|cut -d ' ' -f 4)
+DOCKER_GID ?= $(shell grep -e '^${DOCKER_GROUP}' /etc/group|cut -d ':' -f 3)
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
