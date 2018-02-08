@@ -26,5 +26,5 @@ COPY --from=go-base /root/go/bin/ /usr/local/bin/
 
 # Prep user
 RUN adduser -D -u ${ALPINE_SDK_USERID} ${ALPINE_SDK_USER} 
-RUN groupmod -og ${ALPINE_SDK_GROUPID} ${ALPINE_SDK_GROUP}
+RUN groupmod -og ${ALPINE_SDK_GID} ${ALPINE_SDK_GROUP}
 RUN groupmod -og ${DOCKER_GID} ${DOCKER_GROUP}

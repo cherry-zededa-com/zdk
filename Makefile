@@ -20,7 +20,7 @@ ALPINE_SDK_WORKDIR ?= $(shell pwd) # Default will just end up where zmake is
 ALPINE_SDK_USER ?= $(shell id -un)
 ALPINE_SDK_USERID ?= $(shell id -u ${ALPINE_SDK_USER})
 ALPINE_SDK_GROUP ?= $(shell id -gn)
-ALPINE_SDK_GROUPID ?= $(shell id -g)
+ALPINE_SDK_GID ?= $(shell id -g)
 ALPINE_SDK_USER_PKGS ?= # Set this in the environment ?
 
 # Docker details
@@ -104,7 +104,7 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USERID\}/${ALPINE_SDK_USERID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_GROUP\}/${ALPINE_SDK_GROUP}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{ALPINE_SDK_GROUPID\}/${ALPINE_SDK_GROUPID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_GID\}/${ALPINE_SDK_GID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_PKGS\}/'${ALPINE_SDK_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{DOCKER_GROUP\}/${DOCKER_GROUP}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{DOCKER_GID\}/${DOCKER_GID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
@@ -114,7 +114,7 @@ build-sdk: Dockerfile
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GROUPID} --group-add ${DOCKER_GID} ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SDK_SHELL} ${ALPINE_SDK_SHELL_ARGS}
+	docker run -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GID} --group-add ${DOCKER_GID} ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SDK_SHELL} ${ALPINE_SDK_SHELL_ARGS}
 
 # Used for image inspection. We merge the contents of
 # DOCKER_VOLUME_ROOT_CACHE and the
