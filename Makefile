@@ -17,12 +17,15 @@ ALPINE_MULTIARCH_VER ?= $(strip ${BUILDARCH})-$(strip ${ALPINE_VER})
 ALPINE_SDK_SHELL ?= /bin/sh
 ALPINE_SDK_SHELL_ARGS ?= # arguments
 ALPINE_SDK_WORKDIR ?= $(shell pwd) # Default will just end up where zmake is
-ALPINE_SDK_USER ?= ${USER}
+ALPINE_SDK_USER ?= $(shell id -un)
 ALPINE_SDK_USERID ?= $(shell id -u ${ALPINE_SDK_USER})
+ALPINE_SDK_GROUP ?= $(shell id -gn)
+ALPINE_SDK_GROUPID ?= $(shell id -g)
 ALPINE_SDK_USER_PKGS ?= # Set this in the environment ?
 
 # Docker details
-DOCKER_GID ?= $(shell grep docker /etc/group|cut -d ':' -f 3)
+DOCKER_GROUP ?= $(shell ls -ld  /var/run/docker.sock|tr -s ' '|cut -d ' ' -f 4)
+DOCKER_GID ?= $(shell grep ${DOCKER_GROUP} /etc/group|cut -d ':' -f 3)
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
@@ -100,15 +103,18 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{ALPINE_SDK_SHELL\}/$(subst /,\\/,${ALPINE_SDK_SHELL})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USER\}/${ALPINE_SDK_USER}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_USERID\}/${ALPINE_SDK_USERID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_GROUP\}/${ALPINE_SDK_GROUP}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{ALPINE_SDK_GROUPID\}/${ALPINE_SDK_GROUPID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{ALPINE_SDK_PKGS\}/'${ALPINE_SDK_PKGS}'/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
-	sed s/\$$\{DOCKER_GID\}/$(subst /,\\/,${DOCKER_GID})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
+	sed s/\$$\{DOCKER_GROUP\}/${DOCKER_GROUP}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
+	sed s/\$$\{DOCKER_GID\}/${DOCKER_GID}/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $@ $$_ZDK_TMPFILE ;\
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
 build-sdk: Dockerfile
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} /bin/su -s ${ALPINE_SDK_SHELL} - ${ALPINE_SDK_USER} ${ALPINE_SDK_SHELL_ARGS}
+	docker run -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GROUPID} --group-add ${DOCKER_GID} ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SDK_SHELL} ${ALPINE_SDK_SHELL_ARGS}
 
 # Used for image inspection. We merge the contents of
 # DOCKER_VOLUME_ROOT_CACHE and the
