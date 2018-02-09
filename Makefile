@@ -49,7 +49,9 @@ DOCKER_RUN_PREFIX += --rm
 # containerise home directory - use a private volume
 DOCKER_RUN_PREFIX += --mount type=$(strip ${DOCKER_VOLUME_MOUNT_TYPE}),source=$(strip ${DOCKER_VOLUME_HOME}),target=$(strip ${DOCKER_VOLUME_HOME_MOUNTDIR})
 # Bring in the directory on the host where the source is
-DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} -w ${ALPINE_SDK_WORKDIR} 
+DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} -w ${ALPINE_SDK_WORKDIR}
+# Setup user/group -> uid/gid mappings.
+DOCKER_RUN_PREFIX += -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GID} --group-add ${DOCKER_GID} 
 
 DOCKER_BUILD_PREFIX := 
 #--no-cache=true
@@ -115,7 +117,7 @@ build-sdk: Dockerfile
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
-	docker run -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GID} --group-add ${DOCKER_GID} ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SDK_SHELL} ${ALPINE_SDK_SHELL_ARGS}
+	docker run ${DOCKER_RUN_PREFIX} -it ${DOCKER_VOLUME_ROOT_CACHE} ${ALPINE_SDK_SHELL} ${ALPINE_SDK_SHELL_ARGS}
 
 # Used for image inspection. We merge the contents of
 # DOCKER_VOLUME_ROOT_CACHE and the
