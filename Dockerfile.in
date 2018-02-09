@@ -25,9 +25,11 @@ COPY --from=go-base /root/go/src /usr/lib/go/
 COPY --from=go-base /root/go/bin/ /usr/local/bin/
 
 # Prep user
-RUN adduser -D -u ${ALPINE_SDK_USERID} ${ALPINE_SDK_USER} 
+RUN adduser -D -u ${ALPINE_SDK_USERID} ${ALPINE_SDK_USER} || echo Using existing user 'root'
 RUN groupmod -og ${ALPINE_SDK_GID} ${ALPINE_SDK_GROUP} || \
-    groupadd -og ${ALPINE_SDK_GID} ${ALPINE_SDK_GROUP}
+    groupadd -og ${ALPINE_SDK_GID} ${ALPINE_SDK_GROUP} && \
+    echo Adding supplimentary host shell group ${ALPINE_SDK_GROUP} to existing gid ${ALPINE_SDK_GID}
 RUN groupmod -og ${DOCKER_GID} ${DOCKER_GROUP} || \
-    groupadd -og ${DOCKER_GID} ${DOCKER_GROUP}
+    groupadd -og ${DOCKER_GID} ${DOCKER_GROUP} && \
+    echo Adding supplimentary docker group ${DOCKER_GROUP} to existing gid ${DOCKER_GID}
 
