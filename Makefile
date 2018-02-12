@@ -24,8 +24,8 @@ ALPINE_SDK_GID ?= $(shell id -g)
 ALPINE_SDK_USER_PKGS ?= # Set this in the environment ?
 
 # Docker details
-DOCKER_BIN ?= /var/run/docker.sock
-DOCKER_GROUP ?= $(shell ls -ld ${DOCKER_BIN}|tr -s ' '|cut -d ' ' -f 4)
+DOCKER_SOCKET ?= /var/run/docker.sock
+DOCKER_GROUP ?= $(shell ls -ld ${DOCKER_SOCKET}|tr -s ' '|cut -d ' ' -f 4)
 DOCKER_GID ?= $(shell grep -e '^${DOCKER_GROUP}' /etc/group|cut -d ':' -f 3)
 DOCKER_CONTAINER ?= sdk-alpine-container-${ALPINE_MULTIARCH_VER}
 DOCKER_CONTAINER_HOSTNAME ?= zdk-container
@@ -68,8 +68,16 @@ help:
 	@echo "build-sdk: Download docker base image and install basic sdk" 
 	@echo "		 set ALPINE_SDK_USER_PKGS to the list of additional Alpine Linux packages you need pre-installed."
 	@echo
-	@echo "run-sdk-shell: run your favourite $ALPINE_SDK_SHELL inside the newly built sdk environment"
+	@echo "run-sdk-shell: run your favourite $$ALPINE_SDK_SHELL inside the newly built sdk environment"
 	@echo "		 set ALPINE_SDK_SHELL to the path of your favourite shell." 
+	@echo
+	@echo "If unsure, just paste the following text on your command line or put it in your $$HOME/.profile":
+	@echo
+	@echo "export ALPINE_SDK_DIR=$$PWD"
+	@echo "export PATH="'$$PATH:$$ALPINE_SDK_DIR'
+	@echo "export ALPINE_SDK_USER=root"
+	@echo
+	@echo "You can then use 'zmake' from your zenbuild source directory"
 	@exit
 
 
@@ -94,12 +102,15 @@ clean-sdk: # Silly attempt to babysit
 	@echo "Destroying SDK data and state by calling make in a subshell"
 	${MAKE} -k clean-container clean-volume-root-cache
 
-# Let's import some variables from the environment!
-.PHONY: Dockerfile
 
+.PHONY: Dockerfile Dockerfile.in
+
+# Let's import some variables from the environment!
 # XXX: This whole thing below needs to go into a parser that groks Dockerfile BNF
+# Check for docker running
 # POSIX fascism - not using 'sed -i'
 Dockerfile: Dockerfile.in 
+	@ls ${DOCKER_SOCKET} 2>/dev/null || (echo && echo && echo "Docker socket not found - is the docker service running ?" && echo && echo && exit 1)
 	set -e ;\
 	_ZDK_TMPFILE=$$(mktemp) ;\
 	sed s/\$$\{ALPINE_MULTIARCH_VER\}/${ALPINE_MULTIARCH_VER}/g $< > $@ || rm -f $@ $$_ZDK_TMPFILE ;\

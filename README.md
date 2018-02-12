@@ -21,3 +21,7 @@ Now you can invoke the 'zmake' script from the zenbuild directory:
 host:~/.../zenbuild$ 'zmake pkgs'
 
 ... and off you go!
+
+For quick setup help, type 'make help' in this directory, and you will
+get a set of environment variable initialisations to paste into your
+shell, followed by further instructions.
