@@ -17,7 +17,7 @@ export ALPINE_SDK_SHELL=/bin/sh
 export EDITOR=${EDITOR:=emacs}
 
 export ALPINE_SDK_USER_PKGS=$EDITOR
-export ALPINE_SDK_SHELL_ARGS="-c \"cd $PWD; $(which $EDITOR) $@\""
+export ALPINE_SDK_SHELL_ARGS="-c \"cd $PWD; $EDITOR $@\""
 export ALPINE_SDK_WORKDIR=$PWD
 
 (cd $ALPINE_SDK_DIR; make build-sdk run-sdk-shell)
