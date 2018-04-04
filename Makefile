@@ -32,6 +32,8 @@ DOCKER_CONTAINER_HOSTNAME ?= zdk-container
 DOCKER_VOLUME_ROOT_CACHE ?= sdk-alpine-volume-root-cache-${ALPINE_MULTIARCH_VER} #can be rebuilt
 DOCKER_VOLUME_HOME ?= sdk-alpine-volume-home-${ALPINE_MULTIARCH_VER} #User data
 DOCKER_VOLUME_MOUNT_TYPE ?= volume
+
+
 DOCKER_VOLUME_HOME_MOUNTDIR ?= /home/${ALPINE_SDK_USER}
 DOCKER_VOLUME_DEBUG_IMAGE ?= sdk-debug-image
 DOCKER_COMMON_PREFIX := # 
@@ -46,10 +48,19 @@ DOCKER_RUN_PRIFIX := --name ${DOCKER_CONTAINER} --hostname ${DOCKER_CONTAINER_HO
 DOCKER_RUN_PREFIX += -v /var/run/docker.sock:/var/run/docker.sock
 # Destroy build container after use. 
 DOCKER_RUN_PREFIX += --rm
-# containerise home directory - use a private volume
+
+# If we don't import the entire home directory from the host
+# containerise home directory from a private volume
+ifneq ($(strip ${DOCKER_VOLUME_HOME_MOUNTDIR}), $(strip ${ALPINE_SDK_WORKDIR}))
 DOCKER_RUN_PREFIX += --mount type=$(strip ${DOCKER_VOLUME_MOUNT_TYPE}),source=$(strip ${DOCKER_VOLUME_HOME}),target=$(strip ${DOCKER_VOLUME_HOME_MOUNTDIR})
+endif
+
 # Bring in the directory on the host where the source is
-DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} -w ${ALPINE_SDK_WORKDIR}
+DOCKER_RUN_PREFIX += -v ${ALPINE_SDK_WORKDIR}:${ALPINE_SDK_WORKDIR} 
+
+# Set working directory
+DOCKER_RUN_PREFIX += -w ${ALPINE_SDK_WORKDIR}
+
 # Setup user/group -> uid/gid mappings.
 DOCKER_RUN_PREFIX += -u ${ALPINE_SDK_USERID}:${ALPINE_SDK_GID} --group-add ${DOCKER_GID} 
 
@@ -73,8 +84,8 @@ help:
 	@echo
 	@echo "If unsure, just paste the following text on your command line or put it in your $$HOME/.profile":
 	@echo
-	@echo "export ALPINE_SDK_DIR=$$PWD"
-	@echo "export PATH="'$$PATH:$$ALPINE_SDK_DIR'
+	@echo "export ALPINE_SDK_WORKDIR=$$PWD"
+	@echo "export PATH="'$$PATH:$$ALPINE_SDK_WORKDIR'
 	@echo "export ALPINE_SDK_USER=root"
 	@echo
 	@echo "You can then use 'zmake' from your zenbuild source directory"
@@ -98,7 +109,7 @@ clean-volume-root-cache:
 
 clean-sdk: # Silly attempt to babysit
 	@echo "Are you sure you want to destroy your entire SDK data and state ?" ; echo -n "(NO/yeS/^C): "
-	@read SDKDELCONFIRMED && test $$SDKDELCONFIRMED == "yeS" || { echo "Aborted clean";exit 1; }
+	@read SDKDELCONFIRMED && test $$SDKDELCONFIRMED=="yeS" || { echo "Aborted clean";exit 1; }
 	@echo "Destroying SDK data and state by calling make in a subshell"
 	${MAKE} -k clean-container clean-volume-root-cache
 
@@ -125,6 +136,8 @@ Dockerfile: Dockerfile.in
 	sed s/\$$\{SDK_REPO_BASE\}/$(subst /,\\/,${SDK_REPO_BASE})/g $@ > $$_ZDK_TMPFILE && mv $$_ZDK_TMPFILE $@ || rm -f $$_ZDK_TMPFILE ;\
 
 build-sdk: Dockerfile
+	@echo "Registering qemu user binary translators"
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 	docker build ${DOCKER_BUILD_PREFIX} -t ${DOCKER_VOLUME_ROOT_CACHE} .
 
 run-sdk-shell: 
