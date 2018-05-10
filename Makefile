@@ -39,7 +39,7 @@ DOCKER_VOLUME_DEBUG_IMAGE ?= sdk-debug-image
 DOCKER_COMMON_PREFIX := # 
 
 # No more tweakable defaults after this line
-ALPINE_SDK_BASE_PKGS := busybox go git libc-dev make docker shadow openssh-client 
+ALPINE_SDK_BASE_PKGS := busybox go git libc-dev make docker shadow openssh-client qemu-img
 ALPINE_SDK_PKGS := ${ALPINE_SDK_BASE_PKGS} ${ALPINE_SDK_USER_PKGS}
 
 # Name things
