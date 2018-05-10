@@ -8,8 +8,8 @@ FROM ${SDK_REPO_BASE}:${ALPINE_MULTIARCH_VER} AS sdk-base
 
 
 # Prep software
-RUN apk update
-RUN apk add ${ALPINE_SDK_PKGS}
+RUN apk update --no-cache
+RUN apk add --no-cache ${ALPINE_SDK_PKGS}
 
 FROM sdk-base AS go-base
 RUN  go get -v -u github.com/linuxkit/linuxkit/src/cmd/linuxkit
